@@ -37,10 +37,17 @@ class ApexTopClass:
 
 		referenced_classes = []
 		for line in self.content:
-			pattern = re.compile('.*(' + '|'.join(class_list) + ')\.([a-zA-Z0-9_]+)\(.*\)', re.I)
-			m = pattern.match(line)
-			if m == None : continue
-			referenced_classes.append(m[1] + '.' + m[2])
+			static_method_pattern = re.compile('.*(' + '|'.join(class_list) + ')\.([a-zA-Z0-9_]+)\(.*\)', re.I)
+			class_extension_pattern = re.compile('.* ([a-zA-Z0-9_]+) extends (' + '|'.join(class_list) + ').*', re.I)
+			new_instance_pattern = re.compile('.*new (' + '|'.join(class_list) + ')(\(.+\)).*', re.I)
+
+			m1 = static_method_pattern.match(line)
+			m2 = class_extension_pattern.match(line)
+			m3 = new_instance_pattern.match(line)
+			if m1 != None : referenced_classes.append(m1[1] + '.' + m1[2])
+			if m2 != None : referenced_classes.append(m2[1] + ' extends ' + m2[2])
+			if m3 != None : referenced_classes.append('INIT: ' + m3[1])
+
 
 		return list(set(referenced_classes))
 
