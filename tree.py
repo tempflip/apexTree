@@ -2,6 +2,11 @@
 import sys
 import os
 import re
+import networkx as nx
+
+import matplotlib  
+matplotlib.use('TkAgg')   
+import matplotlib.pyplot as plt 
 
 class ApexTopClass:
 
@@ -16,7 +21,6 @@ class ApexTopClass:
 
 	def find_top_class_name(self):
 		pattern = re.compile('(public|global|private).+class ([a-zA-Z0-9_]+)', re.I)
-
 		for line in self.content:
 			m = pattern.match(line)
 			if (m != None):
@@ -33,7 +37,7 @@ class ApexTopClass:
 
 			self.inside_class_list.append(m[2])
 
-	def get_references_classes(self, class_list):
+	def get_referenced_classes(self, class_list):
 
 		referenced_classes = []
 		for line in self.content:
@@ -44,10 +48,18 @@ class ApexTopClass:
 			m1 = static_method_pattern.match(line)
 			m2 = class_extension_pattern.match(line)
 			m3 = new_instance_pattern.match(line)
-			if m1 != None : referenced_classes.append(m1[1] + '.' + m1[2])
-			if m2 != None : referenced_classes.append(m2[1] + ' extends ' + m2[2])
-			if m3 != None : referenced_classes.append('INIT: ' + m3[1])
-
+			if m1 != None : 
+				# referenced_classes.append('STATIC: ' + m1[1] + '.' + m1[2])
+				referenced_classes.append(m1[1])
+				pass
+			if m2 != None : 
+				# referenced_classes.append('EXTENDS: ' + m2[1] + '  ' + m2[2])
+				referenced_classes.append(m2[2])
+				pass
+			if m3 != None : 
+				# referenced_classes.append('INIT: ' + m3[1])
+				referenced_classes.append(m3[1])
+				pass
 
 		return list(set(referenced_classes))
 
@@ -57,6 +69,7 @@ class ApexTopClass:
 class Codebase:
 	def __init__(self):
 		self.class_map = {}
+		self.g = nx.Graph()		
 
 	def add_class(self, cls):
 		self.class_map[cls.name] = cls
@@ -65,8 +78,9 @@ class Codebase:
 		self.edges = {}
 		for classname, apexclass in self.class_map.items():
 			self.edges[classname] = []
-			for referenced_class in apexclass.get_references_classes(self.class_map.keys()):
+			for referenced_class in apexclass.get_referenced_classes(self.class_map.keys()):
 				self.edges[classname].append(referenced_class)
+				self.g.add_edge(classname, referenced_class)
 
 	def print_edges(self):
 		for classname, edge_list in self.edges.items():
@@ -79,6 +93,13 @@ class Codebase:
 
 		print('--------------------------')
 
+	def get_important_nodes(self, n):
+		imp = []
+		for node in self.g.nodes:
+			if len(self.g.edges(node)) < n : continue
+			imp.append(node)
+
+		return imp
 
 def get_filelist(dir):
 
@@ -107,6 +128,12 @@ def main():
 
 	cb.build_edges()
 	cb.print_edges()
+
+
+	print (cb.get_important_nodes(9) )
+
+	# nx.draw_networkx_nodes(cb.g, nodelist=('Transaction_SetDefaults', 'Helpers'), with_labels=True)
+	# plt.show()
 
 
 
